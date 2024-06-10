@@ -17,7 +17,7 @@ export default function Code() {
     setStatus("PENDING");
 
     try {
-      const response = await axios.post('http://localhost:5000/compile', {
+      const response = await axios.post('https://mycompiler1-w3xnyx5h.b4a.run/compile', {
         language: language,
         code: code,
         input: input
@@ -28,7 +28,7 @@ export default function Code() {
 
       let intervalId = setInterval(async () => {
         try {
-          const responsedata = await axios.get(`http://localhost:5000/status/${jobId}`);
+          const responsedata = await axios.get(`https://mycompiler1-w3xnyx5h.b4a.run/${jobId}`);
           const { success, error, job } = responsedata.data;
 
           if (success) {
