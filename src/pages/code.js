@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import Editor from '@monaco-editor/react';
 import '../styles/code.scss';
 
 export default function Code() {
@@ -15,9 +16,10 @@ export default function Code() {
     event.preventDefault();
     setError("");
     setStatus("PENDING");
+    setOutput("");
 
-    try {
-      const response = await axios.post('https://mycompiler1-w3xnyx5h.b4a.run/compile', {
+    try{
+      const response = await axios.post('https://compilerbackend-qkvcy69k.b4a.run/compile', {
         language: language,
         code: code,
         input: input
@@ -26,33 +28,33 @@ export default function Code() {
       const jobId = response.data.jobId;
       setJobId(jobId);
 
-      let intervalId = setInterval(async () => {
+      const intervalId = setInterval(async () => {
         try {
-          const responsedata = await axios.get(`https://mycompiler1-w3xnyx5h.b4a.run/${jobId}`);
+          const responsedata = await axios.get(`https://compilerbackend-qkvcy69k.b4a.run/status/${jobId}`);
           const { success, error, job } = responsedata.data;
 
           if (success) {
             const { status: jobStatus, output: jobOutput } = job;
             setStatus(jobStatus);
-            if (jobStatus === "PENDING") {
-              return;
+            if (jobStatus !== "PENDING") {
+              setOutput(jobOutput);
+              clearInterval(intervalId);
             }
-            setOutput(jobOutput);
-            clearInterval(intervalId);
           } else {
-            setStatus("ERROR! Please try again");
-            setOutput("Error: " + error);
+            setStatus("ERROR");
+            setOutput(`Error: ${error}`);
             clearInterval(intervalId);
           }
         } catch (err) {
           console.error("Interval Error:", err);
-          setStatus("ERROR! Please try again");
-          setOutput("Error: " + err.message);
+          setStatus("ERROR");
+          setOutput(`Error: ${err.message}`);
           clearInterval(intervalId);
         }
       }, 1000);
     } catch (error) {
       console.error("Error:", error);
+      setStatus("ERROR");
       if (error.response) {
         setError(error.response.data.error || "Unknown error occurred");
       } else {
@@ -62,7 +64,8 @@ export default function Code() {
   }
 
   return (
-    <div className="code-container">
+    <div>
+      <div className="code-container">
       <div className="code-editor">
         <h1>Write your Code</h1>
         <form onSubmit={handleSubmit}>
@@ -73,13 +76,23 @@ export default function Code() {
           </select>
 
           <div className="editor-label">Code</div>
-          <textarea name="code" value={code} onChange={(e) => setCode(e.target.value)} />
+          <Editor
+            className='Editor'
+            height="80vh"
+            width="120vh"
+            defaultPath="code.cpp"
+            language={language}
+            value={code}
+            onChange={(value) => setCode(value)}
+            theme="vs-dark"
+          />
 
-          <div className="editor-label">Input (Optional)</div>
+          <div className="editor-label">Input</div>
           <textarea name="input" value={input} onChange={(e) => setInput(e.target.value)} />
-
+          <br />
           <button className="button" type="submit">Submit</button>
         </form>
+      </div>
       </div>
 
       <div className="output-container">
@@ -89,14 +102,14 @@ export default function Code() {
           {error && <p className="error">Error: {error}</p>}
         </div>
 
-        <div className="job-id-container">
+        {/* <div className="job-id-container">
           <h2 className="subtitle">Job ID</h2>
           <p className="job-id">{jobId && `JobId: ${jobId}`}</p>
-        </div>
+        </div> */}
 
         <div className="output">
           <h2 className="subtitle">Output</h2>
-          {status === "SUCCESS" && output}
+          {status === "SUCCESS" && <pre>{output}</pre>}
         </div>
       </div>
     </div>
